@@ -54,8 +54,7 @@ export class FrameGraph
     ctx.clearRect(0, 0, 
         this.canvasElement.width, this.canvasElement.height);
     ctx.lineWidth = 1.33;
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingEnabled = false;
     
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
@@ -64,8 +63,8 @@ export class FrameGraph
     let worstSample = Infinity;
     // let bestX = 0;
     // let bestY = 0;
-    let bestIndex = 0;
-    let worstIndex = 0;
+    // let bestIndex = 0;
+    // let worstIndex = 0;
     // let worstX = 0;
     // let worstY = 0;
 
@@ -102,13 +101,13 @@ export class FrameGraph
       
       if (bestSample >= sample) {
         bestSample = sample;
-        bestIndex = i;
+        // bestIndex = i;
         // bestX = x;
         // bestY = y;
       }
       if (worstSample <= sample) {
         worstSample = sample;
-        worstIndex = i;
+        // worstIndex = i;
         // worstX = x;
         // worstY = y;
       }
@@ -125,8 +124,9 @@ export class FrameGraph
 
     ctx.font = '14px sans-serif';
     const noDash: number[] = [];
-    const dotted: number[] = [4, 4];
+    //const dotted: number[] = [4, 4];
     let lines: Array<[number,string,number[]]> = [
+      [ 1000000, 'gold', noDash ],
       [ 240, 'gold', noDash ],
       [ 180, 'gold', noDash ], 
       [ 120, 'gold', noDash ],
@@ -135,38 +135,45 @@ export class FrameGraph
       [ 30, 'pink', noDash ],
       [ 15, 'red', noDash ],
       [ 5, 'red', noDash ],
-      [ 1, 'red', noDash ],
-      [ 1000 / bestSample, 'white', dotted ],
-      [ 1000 / worstSample, 'white', dotted ]
+      [ 1, 'red', noDash ]
+      // [ 1000 / bestSample, 'white', dotted ],
+      // [ 1000 / worstSample, 'white', dotted ]
     ];
-    lines.forEach((lineInfo, index) => {
+    for (let index = 0; index < lines.length; ++index) {
+      let lineInfo = lines[index];
       let rate = lineInfo[0];
       let color = lineInfo[1];
       let dash = lineInfo[2];
       ctx!.setLineDash(dash);
       ctx!.fillStyle = color;
       let y = this.canvasHeight - (1000/rate) * ys;
-      if (y > 0 && y + 64 < this.canvasHeight) {
+      let low = y < 70 || y + 70 >= this.canvasHeight;
+      if (y > 0 && !low) {
         ctx!.textAlign = 'left';
         ctx!.fillText('' + rate, 0, y - 3);
-        ctx!.textAlign = 'right';
-        ctx!.fillText((1000/rate).toFixed(1)+'ms', 
-            this.canvasWidth, y - 3);
       }
+
+      ctx!.textAlign = 'right';
+      ctx!.fillText((1000/rate).toFixed(1)+'ms', 
+          this.canvasWidth, y - 3);
       
       ctx!.beginPath();
       ctx!.strokeStyle = color;
-      ctx!.moveTo(this.leftMargin, y);
+      ctx!.moveTo(this.leftMargin + (low ? 16 : 0), y);
       ctx!.lineTo(this.canvasWidth, y);
       ctx!.stroke();
-    });
+    }
 
     ctx.fillStyle = 'gold';
     ctx.save();
     ctx.translate(3, this.canvasHeight);
     ctx.rotate(-90/180*Math.PI);
     ctx.textAlign = 'left';
-    ctx.fillText('⮜ better', 0, 7);//⮞ worse 
+    ctx.fillText('⮜ better', 0, 11);//⮞ worse
+    ctx.textAlign = 'right';
+    ctx.translate(this.canvasHeight, 0);
+    ctx.fillStyle = '#c03030';
+    ctx.fillText('worse ⮞', 0, 11);//
     ctx.restore();
     ctx.restore();
   }

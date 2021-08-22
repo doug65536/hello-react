@@ -1,0 +1,37 @@
+.editgrid-row {
+  display: block;
+  max-width: 800px;
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  background: #226666;
+}
+
+.editgrid-col {
+  display: inline-block;
+  width: 20%;
+  overflow: clip;
+  box-sizing: border-box;
+  padding: 0px;
+  border: none;
+  border-radius: 4px;
+  margin: 4px;
+}
+
+.editgrid-col button {
+  width: 48px;
+  padding: 0;
+}
+
+.editgrid-col input {
+  border-radius: 2px;
+  border: none;
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.editgrid-caption {
+  font-size: 10px;
+  display: block;
+  margin-top: 5px;
+}

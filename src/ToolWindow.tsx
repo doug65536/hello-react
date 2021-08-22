@@ -1,4 +1,5 @@
 import React, { ClassAttributes } from "react";
+import { DragDispatcher, DragDispatcherListener } from "./DragDispatcher";
 import './ToolWindow.css';
 
 interface ToolWindowPropsBase<T extends ResizableChild> {
@@ -18,9 +19,28 @@ interface ToolWindowPropsBase<T extends ResizableChild> {
 export type ToolWindowProps<T extends ResizableChild> = 
     React.PropsWithChildren<ToolWindowPropsBase<T>>;
 
+interface ToolWindowDragData {
+  dragPX: number;
+  dragPY: number;
+  dragSX: number;
+  dragSY: number;
+  dragType: string;
+}
+
+enum SizingElement {
+  TOP,
+  TOPLEFT,
+  LEFT,
+  BOTTOMLEFT,
+  BOTTOM,
+  BOTTOMRIGHT,
+  RIGHT,
+  TOPRIGHT
+}
+
 export class ToolWindow<T extends ResizableChild> 
     extends React.Component<ToolWindowProps<T>>
-    implements ResizableChild {
+    implements ResizableChild, DragDispatcherListener<ToolWindowDragData> {
   public title: string = 'Untitled';
   private titleElement: HTMLDivElement | null = null;
   private clientElement: HTMLDivElement | null = null;
@@ -32,13 +52,8 @@ export class ToolWindow<T extends ResizableChild>
   private minWidth: number = 0;
   private minHeight: number = 0;
   private titleHeight: number = 25;
-  private mouseDownHandler: (ev: MouseEvent) => void;
-  private mouseUpHandler: (ev: MouseEvent) => void;
-  private mouseMoveHandler: (ev: MouseEvent) => void;
-  private touchStartHandler: (ev: TouchEvent) => void;
-  private touchEndHandler: (ev: TouchEvent) => void;
-  private touchMoveHandler: (ev: TouchEvent) => void;
   private resizableChildren: (T | null)[] = [];
+  private resizingElements: (Element | null)[] = [];
   private handleHalfSize: number = 9;
   private changed: boolean = false;
   private clampLeft: number = 0;
@@ -46,6 +61,20 @@ export class ToolWindow<T extends ResizableChild>
   private clampRight: number = window.innerWidth;
   private clampBottom: number = window.innerHeight;
   private canAutoClamp: boolean = false;
+
+  private dragDispatcher = new DragDispatcher<ToolWindowDragData>(this, {
+    shouldDrag: [
+      '.tool-window-titlebar',
+      '.tool-window-resize'
+    ],
+    userData: {
+      dragPX: 0,
+      dragPY: 0,
+      dragSX: 0,
+      dragSY: 0,
+      dragType: ''
+    }
+  });
 
   constructor(props: ToolWindowProps<T>) {
     super(props);
@@ -56,30 +85,14 @@ export class ToolWindow<T extends ResizableChild>
     if (props.title)
       this.title = props.title;
     this.changed = true;
-    this.mouseDownHandler = this.handleMouseDown.bind(this);
-    this.mouseUpHandler = this.handleMouseUp.bind(this);
-    this.mouseMoveHandler = this.handleMouseMove.bind(this);
-    this.touchStartHandler = this.handleTouchDown.bind(this);
-    this.touchEndHandler =   this.handleTouchEnd.bind(this);
-    this.touchMoveHandler = this.handleTouchMove.bind(this);
   }
   
   componentDidMount(): void {
-    window.addEventListener('mousedown', this.mouseDownHandler);
-    window.addEventListener('mouseup', this.mouseUpHandler);
-    window.addEventListener('mousemove', this.mouseMoveHandler);
-    window.addEventListener('touchstart', this.touchStartHandler);
-    window.addEventListener('touchmove', this.touchMoveHandler);
-    window.addEventListener('touchend', this.touchEndHandler);
+    this.dragDispatcher.hook();
   }
 
   componentWillUnmount(): void {    
-    window.removeEventListener('mousedown', this.mouseDownHandler);
-    window.removeEventListener('mouseup', this.mouseUpHandler);
-    window.removeEventListener('mousemove', this.mouseMoveHandler);
-    window.removeEventListener('touchstart', this.touchStartHandler);
-    window.removeEventListener('touchend', this.touchEndHandler);
-    window.removeEventListener('touchmove', this.touchMoveHandler);
+    this.dragDispatcher.unhook();
   }
 
   shouldComponentUpdate(): boolean {
@@ -101,6 +114,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* top edge */}
       <div className="tool-window-resize"
         data-resize="t"
+        ref={(el) => this.resizingElements[SizingElement.TOP] = el}
         style={{
           position: 'absolute',
           left: (this.handleHalfSize) + 'px',
@@ -115,6 +129,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* left edge */}
       <div className="tool-window-resize"
         data-resize="l"
+        ref={(el) => this.resizingElements[SizingElement.LEFT] = el}
         style={{
           position: 'absolute',
           left: (-this.handleHalfSize) + 'px',
@@ -129,6 +144,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* bottom edge */}
       <div className="tool-window-resize"
         data-resize="b"
+        ref={(el) => this.resizingElements[SizingElement.BOTTOM] = el}
         style={{
           position: 'absolute',
           left: (this.handleHalfSize) + 'px',
@@ -143,6 +159,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* right edge */}
       <div className="tool-window-resize"
         data-resize="r"
+        ref={(el) => this.resizingElements[SizingElement.RIGHT] = el}
         style={{
           position: 'absolute',
           left: (this.sx - this.handleHalfSize) + 'px',
@@ -157,6 +174,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* top left corner */}
       <div className="tool-window-resize"
         data-resize="tl"
+        ref={(el) => this.resizingElements[SizingElement.TOPLEFT] = el}
         style={{
           position: 'absolute',
           left: (-this.handleHalfSize) + 'px',
@@ -171,6 +189,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* bottom left corner */}
       <div className="tool-window-resize"
         data-resize="bl"
+        ref={(el) => this.resizingElements[SizingElement.BOTTOMLEFT] = el}
         style={{
           position: 'absolute',
           left: (-this.handleHalfSize) + 'px',
@@ -185,6 +204,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* top right corner */}
       <div className="tool-window-resize"
         data-resize="tr"
+        ref={(el) => this.resizingElements[SizingElement.TOPRIGHT] = el}
         style={{
           position: 'absolute',
           left: (this.sx - this.handleHalfSize) + 'px',
@@ -199,6 +219,7 @@ export class ToolWindow<T extends ResizableChild>
       {/* bottom right corner */}
       <div className="tool-window-resize"
         data-resize="br"
+        ref={(el) => this.resizingElements[SizingElement.BOTTOMRIGHT] = el}
         style={{
           position: 'absolute',
           left: (this.sx - this.handleHalfSize) + 'px',
@@ -219,6 +240,7 @@ export class ToolWindow<T extends ResizableChild>
             width: this.sx + 'px',
             padding: '2px',
             height: this.titleHeight + 'px',
+            overflow: 'clip',
             background: '#123456'
           }}>
         {this.title}
@@ -230,7 +252,8 @@ export class ToolWindow<T extends ResizableChild>
             top: this.titleHeight + 'px',
             left: '0px',
             width: this.sx + 'px',
-            height: (this.sy - this.titleHeight) + 'px'
+            height: (this.sy - this.titleHeight) + 'px',
+            background: 'rgba(0,0,0,0.5)'
           }}>
         {this.createGuest()}
       </div>
@@ -261,131 +284,89 @@ export class ToolWindow<T extends ResizableChild>
       child.resize(this.sx, this.sy - this.titleHeight)
   }
 
-  private dragging: boolean = false;
-  private resizing: boolean = false;
-  private dragX: number = 0;
-  private dragY: number = 0;
-  private dragPX: number = 0;
-  private dragPY: number = 0;
-  private dragSX: number = 0;
-  private dragSY: number = 0;
-  private dragType: string | null = null;
-  private lastTouchX: number = 0;
-  private lastTouchY: number = 0;
+  // private dragging: boolean = false;
+  // private resizing: boolean = false;
+  // private dragX: number = 0;
+  // private dragY: number = 0;
+  // private dragPX: number = 0;
+  // private dragPY: number = 0;
+  // private dragSX: number = 0;
+  // private dragSY: number = 0;
+  // private dragType: string | null = null;
 
-  private handleTouchDown(ev: TouchEvent): void {
-    let firstTouch = ev.touches[0];
-    this.lastTouchX = firstTouch.clientX;
-    this.lastTouchY = firstTouch.clientY;
-    this.handleInputDown(firstTouch.clientX, firstTouch.clientY, ev);
-  }
-  
-  private handleTouchMove(ev: TouchEvent): void {
-    let firstTouch = ev.touches[0];
-    this.lastTouchX = firstTouch.clientX;
-    this.lastTouchY = firstTouch.clientY;
-    this.handleInputMove(firstTouch.clientX, firstTouch.clientY, ev);
-  }
-  
-  private handleTouchEnd(ev: TouchEvent): void {
-    this.handleInputUp(this.lastTouchX, this.lastTouchY, ev);
-  }
-  
-  private handleMouseDown(ev: MouseEvent): void {
-    this.handleInputDown(ev.clientX, ev.clientY, ev);
-  }
-  
-  private handleMouseUp(ev: MouseEvent): void {
-    // Don't throw away the mouse coordinates of mouseup!
-    this.handleInputMove(ev.clientX, ev.clientY, ev);
-    this.handleInputUp(ev.clientX, ev.clientY, ev);
-  }
-
-  private handleInputDown(clientX: number, clientY: number, ev: Event) {
-    let target = ev.target as HTMLElement;
-    let dragType: string | null;
-    let closestThing = target.closest('.tool-window-titlebar');
-    if (closestThing) {
-      this.dragging = true;
-      dragType = null;
-    } else {
-      closestThing = target.closest('.tool-window-resize');
-      if (!closestThing)
-        return;
-      this.resizing = true;
-      dragType = closestThing.getAttribute('data-resize');
-    }
+  public handleDragStart(from: DragDispatcher<ToolWindowDragData>, 
+      ev: Event): void {
+    from.userData.dragType = 'move';
+    from.userData.dragPX = this.px;
+    from.userData.dragPY = this.py;
+    from.userData.dragSX = this.sx;
+    from.userData.dragSY = this.sy;
     
-    this.dragPX = this.px;
-    this.dragPY = this.py;
-    this.dragSX = this.sx;
-    this.dragSY = this.sy;
-    this.dragType = dragType;
-
-    this.dragX = clientX;
-    this.dragY = clientY;
-    console.log('drag start');
-    ev.preventDefault();
+    if (from.dragType === '.tool-window-resize') {
+      let el = ev.target as Element;
+      let closestResize = el.closest('.tool-window-resize');
+      let type = closestResize?.getAttribute('data-resize') || '';
+      console.assert(type);
+      from.userData.dragType = type;
+    } else if (from.dragType === '.tool-window-titlebar') {
+      from.userData.dragType = 'move';      
+    }
+    //console.log('drag start');
   }
 
-  private handleInputUp(clientX: number, clientY: number, ev: Event): void {
-    if (!this.dragging && !this.resizing)
-      return;
-    this.dragging = false;
-    this.resizing = false;
-    ev.preventDefault();
-    console.log('drag end');
-  }
-  
-  private handleMouseMove(ev: MouseEvent): void {
-    this.handleInputMove(ev.clientX, ev.clientY, ev);
+  public handleDragEnd(from: DragDispatcher<ToolWindowDragData>, 
+      ev: Event): void {
+    from.userData.dragType = '';
+    //console.log('drag end');
   }
 
-  private handleInputMove(clientX: number, clientY: number, ev: Event): void {
-    if (!this.dragging && !this.resizing)
-      return;
-    let dx = clientX - this.dragX;
-    let dy = clientY - this.dragY;
-    if (this.dragging) {
+  public handleDragMove(from: DragDispatcher<ToolWindowDragData>, 
+      ev: Event): void {
+    let dx = from.dragDX;
+    let dy = from.dragDY;
+    if (from.userData.dragType === 'move') {
+      if (from.related !== this.titleElement)
+        return;
       //console.log('dragging');
-      this.px = this.dragPX + dx;
-      this.py = this.dragPY + dy;
-    } else if (this.resizing) {
+      this.px = from.userData.dragPX + dx;
+      this.py = from.userData.dragPY + dy;
+    } else {
       //console.log('resizing');
-      switch (this.dragType) {
+      if (this.resizingElements.includes(from.related))
+      switch (from.userData.dragType) {
       case 't':
-        this.py = this.dragPY + dy;
-        this.sy = this.dragSY - dy;
+        this.py = from.userData.dragPY + dy;
+        this.sy = from.userData.dragSY - dy;
         break;
       case 'l':
-        this.px = this.dragPX + dx;
-        this.sx = this.dragSX - dx;
+        this.px = from.userData.dragPX + dx;
+        this.sx = from.userData.dragSX - dx;
         break;
       case 'b':
-        this.sy = this.dragSY + dy;
+        this.sy = from.userData.dragSY + dy;
         break;
       case 'r':
-        this.sx = this.dragSX + dx;
+        this.sx = from.userData.dragSX + dx;
         break;
       case 'tl':
-        this.px = this.dragPX + dx;
-        this.py = this.dragPY + dy;
-        this.sx = this.dragSX - dx;
-        this.sy = this.dragSY - dy;
+        this.px = from.userData.dragPX + dx;
+        this.py = from.userData.dragPY + dy;
+        this.sx = from.userData.dragSX - dx;
+        this.sy = from.userData.dragSY - dy;
         break;
       case 'bl':
-        this.px = this.dragPX + dx;
-        this.sx = this.dragSX - dx;
-        this.sy = this.dragSY + dy;
+        this.px = from.userData.dragPX + dx;
+        this.sx = from.userData.dragSX - dx;
+        this.sy = from.userData.dragSY + dy;
         break;
       case 'br':
-        this.sx = this.dragSX + dx;
-        this.sy = this.dragSY + dy;
+        this.sx = from.userData.dragSX + dx;
+        this.sy = from.userData.dragSY + dy;
         break;
       case 'tr':
-        this.py = this.dragPY + dy;
-        this.sx = this.dragSX + dx;
-        this.sy = this.dragSY - dy;
+        this.py = from.userData.dragPY + dy;
+        this.sx = from.userData.dragSX + dx;
+        this.sy = from.userData.dragSY - dy;
         break;
       }
       this.resizableChildren.forEach((child) => {
