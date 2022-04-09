@@ -197,7 +197,7 @@ export class FrameGraph
 
   componentWillUnmount(): void {
     if (this.peakTimer !== null)
-      clearInterval(this.peak);
+      clearInterval(this.peakTimer);
     this.peakTimer = null;
   }
 
