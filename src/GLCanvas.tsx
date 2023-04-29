@@ -12,26 +12,26 @@ const sunRadius = 695700000;
 const moonRadius = 1737400;
 const moonOrbit = 385000000;
 
-class SolSystem {
-  private largeBodies = {
-    sun: {
-      radius: sunRadius,
-      orbit: 0,
-      parent: ''
-    },
-    earth: {
-      radius: earthRadius,
-      orbit: earthOrbit,
-      parent: 'sun',
-      year: 1,
-    },
-    luna: {
-      radius: moonRadius,
-      orbit: moonOrbit,
-      parent: 'earth'
-    }
-  };
-}
+// class SolSystem {
+//   private largeBodies = {
+//     sun: {
+//       radius: sunRadius,
+//       orbit: 0,
+//       parent: ''
+//     },
+//     earth: {
+//       radius: earthRadius,
+//       orbit: earthOrbit,
+//       parent: 'sun',
+//       year: 1,
+//     },
+//     luna: {
+//       radius: moonRadius,
+//       orbit: moonOrbit,
+//       parent: 'earth'
+//     }
+//   };
+// }
 
 export class GLCanvas extends React.Component<{}>
     implements ResizableChild {

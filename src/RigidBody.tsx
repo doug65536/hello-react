@@ -242,10 +242,10 @@ export class RoundBody<P extends RoundBodyProps = RoundBodyProps>
       }
     }
 
-    let touchL = this.px - this.radius < 0;
-    let touchR = this.px + this.radius >= window.innerWidth;
-    let touchT = this.py - this.radius < 0;
-    let touchB = this.py + this.radius >= window.innerHeight;
+    // let touchL = this.px - this.radius < 0;
+    // let touchR = this.px + this.radius >= window.innerWidth;
+    // let touchT = this.py - this.radius < 0;
+    // let touchB = this.py + this.radius >= window.innerHeight;
 
     if (others.length) {      
       for (let i = 0; i < others.length; ++i) {
