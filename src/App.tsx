@@ -131,7 +131,7 @@ class App extends React.Component<{}>
 
     this.fpsDigitalDisplayInterval = setInterval(() => {
       if (this.fpsDigitalDisplay && this.frameGraph)
-        this.fpsDigitalDisplay.innerText = 
+        this.fpsDigitalDisplay.innerText = 'FPS: ' +
             (this.frameGraph.fps || 0).toFixed(3);
     }, 1000);
 
@@ -379,20 +379,33 @@ class App extends React.Component<{}>
           />
         Slow
       </label>
-      <input
-        type="number"
-        key="ball-count-input"
-        min="0" max="100"
-        defaultValue={this.targetCount}
-        onChange={(rev) => this.targetCount = +rev.target.value}
-        style={{
-          position: 'absolute',
-          float: 'right',
-          marginLeft: '12'
-        }}/>
+      <span style={{marginLeft: '12px'}}>        
+        Ball count: <input
+          type="number"
+          key="ball-count-input"
+          min="0" max="100"
+          defaultValue={this.targetCount}
+          onChange={(rev) => this.targetCount = +rev.target.value}
+          style={{
+            position: 'absolute',
+            float: 'right',
+            marginLeft: '12'
+          }}/>
+      </span>
       <div 
         style={{color: 'white'}}
         ref={(el) => this.fpsDigitalDisplay = el}/>
+      </div>
+      <div>
+        <button 
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 0
+            }}
+            onClick={(event) => ToolWindow.showAllWindows()}>
+          Show All
+        </button>
       </div>
 
       <div style={{

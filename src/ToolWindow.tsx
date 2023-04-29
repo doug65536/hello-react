@@ -86,17 +86,61 @@ export class ToolWindow<T extends ResizableChild>
       this.title = props.title;
     this.changed = true;
   }
+
+  private showAllListener: null | (() => void) = null;
   
   componentDidMount(): void {
     this.dragDispatcher.hook();
+    this.showAllListener = () => {
+      this.forceUpdate();
+    };
+    ToolWindow.addShowAllListener(this.showAllListener);
   }
 
   componentWillUnmount(): void {    
     this.dragDispatcher.unhook();
+    ToolWindow.removeShowAllListener(this.showAllListener!);
+    this.showAllListener = null;
   }
 
   shouldComponentUpdate(): boolean {
     return this.changed;
+  }
+
+  static hiddenToolWindows: WeakSet<any> = new WeakSet<any>();
+  static showAllListeners: Array<() => void> = [];
+
+  static addShowAllListener(callback: () => void) {
+    let index = ToolWindow.showAllListeners.indexOf(callback);
+    console.assert(index < 0, 'adding callback that already exists');
+    ToolWindow.showAllListeners.push(callback);
+  }
+
+  static removeShowAllListener(callback: () => void) {
+    let index = ToolWindow.showAllListeners.indexOf(callback);
+    console.assert(index >= 0, 'removing callback that does not exist');
+    if (index >= 0)
+      ToolWindow.showAllListeners.splice(index, 1);
+  }
+
+  static hideWindow<T extends ResizableChild>(toolWindow: ToolWindow<T>) {
+    ToolWindow.hiddenToolWindows.add(toolWindow);
+    toolWindow.forceUpdate();
+  }
+  
+  static showWindow<T extends ResizableChild>(toolWindow: ToolWindow<T>) {
+    ToolWindow.hiddenToolWindows.delete(toolWindow);
+    toolWindow.forceUpdate();
+  }
+  
+  static isVisibleWindow<T extends ResizableChild>(
+      toolWindow: ToolWindow<T>): boolean {
+    return !ToolWindow.hiddenToolWindows.has(toolWindow);
+  }
+  
+  static showAllWindows() {
+    ToolWindow.hiddenToolWindows = new WeakSet();
+    ToolWindow.showAllListeners.forEach((callback) => callback());
   }
 
   render(): JSX.Element {
@@ -109,7 +153,8 @@ export class ToolWindow<T extends ResizableChild>
           width: this.sx + 'px',
           height: this.sy + 'px',
           outline: 'outset #789 2px',
-          borderRadius: '2px'
+          borderRadius: '2px',
+          ...(ToolWindow.isVisibleWindow(this) ? {} : {display: 'none'} )
         }}>
       {/* top edge */}
       <div className="tool-window-resize"
@@ -244,6 +289,19 @@ export class ToolWindow<T extends ResizableChild>
             background: '#123456'
           }}>
         {this.title}
+        <button className="tool-window-button"
+            style={{
+              position: 'absolute',
+              background: '#555',
+              color: '#ccc',
+              right: '1px',
+              height: '90%',
+              bottom: '1px'
+            }}
+            onClick={(event) => {
+              ToolWindow.hideWindow(this);
+            }}>          
+        </button>
       </div>
       <div className="tool-window-client"
           ref={(el) => this.clientElement = el}
