@@ -18,23 +18,23 @@ interface CustomerRecord {
   deleted?: boolean;
 }
 
-interface InvhRecord {
-  id: number;
-  custid: number;
-  date: number;
-}
+// interface InvhRecord {
+//   id: number;
+//   custid: number;
+//   date: number;
+// }
 
-interface InvdRecord {
-  id: number;
-  invid: number;
-  sid: number;
-}
+// interface InvdRecord {
+//   id: number;
+//   invid: number;
+//   sid: number;
+// }
 
-interface InvpRecord {
-  id: number;
-  invid: number;
-  amt: number;
-}
+// interface InvpRecord {
+//   id: number;
+//   invid: number;
+//   amt: number;
+// }
 
 interface SessionRecord {
   id?: number;
@@ -257,8 +257,8 @@ class IndexDBBackend implements BackendConnection {
     let table = txn.objectStore(info.tableName);
     if (info.indexName) {
       let index = table.index(info.indexName);
-      let offset = Number(info.offset) || 0;
-      let limit = Number(info.limit) || undefined;
+      // let offset = Number(info.offset) || 0;
+      // let limit = Number(info.limit) || undefined;
       let after = Number(info.after) || null;
       let since = Number(info.since) || null;
       let upTo = Number(info.upTo) || null;
