@@ -595,17 +595,18 @@ export class SessionDashboard
     return ('0' + n).substr(-2);
   }
 
-  formatDate(unixDate: number): React.ReactNode {
-    let date = new Date(unixDate);
-    let now = Date.now();
-    let ago = now - unixDate;
-    let agoSe = ago / 1000;
+  formatDate(unixDateMs: number): React.ReactNode {
+    let date = new Date(unixDateMs);
     let yr = date.getFullYear();
     let mo = date.getMonth();
     let da = date.getDate();
     let hr = date.getHours();
     let mi = date.getMinutes();
     let se = date.getSeconds();
+    
+    //let now = Date.now();
+    //let ago = now - unixDate;
+    //let agoSe = ago / 1000;
 
     return yr + '/' + [mo, da].map(SessionDashboard.leadZero).join('/') + ' ' +
         hr + ':' + [mi, se].map(SessionDashboard.leadZero).join(':');
