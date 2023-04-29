@@ -35,13 +35,24 @@ export class CollisionBuckets {
     col = Math.max(0, col);
     row = Math.min(1023, row);
     col = Math.min(1023, col);
-    if (!this.buckets[row])
-      this.buckets[row] = [];
 
-    if (!this.buckets[row][col])
-      this.buckets[row][col] = [];
+    // Get the buckets on this ro
+    let columnsAtRow = this.buckets[row];
 
-    return this.buckets[row][col];
+    if (!columnsAtRow) {
+      // Lazily create the row in the sparse array
+      columnsAtRow = [];
+      this.buckets[row] = columnsAtRow;
+    }
+
+    let bucketAtRowCol = columnsAtRow[col];
+    if (!bucketAtRowCol) {
+      // Lazily instantiate the bucket in the appropriate column
+      bucketAtRowCol = [];
+      columnsAtRow[col] = bucketAtRowCol;
+    }
+
+    return bucketAtRowCol;
   }
 
   static indexFromCoord(xy: number): number {
@@ -69,12 +80,13 @@ export class CollisionBuckets {
     let bucket = this.bucketAt(row, col);
     let index = bucket.indexOf(body);
     console.assert(index >= 0, 'removing but not there');
-    if (bucket.length > 1) {
+    let lastIndex = bucket.length - 1;
+    if (index !== lastIndex) {
       // Make it so the one at the end is the one we are removing
-      let temp = bucket[bucket.length - 1];
-      bucket[bucket.length-1] = bucket[index];
+      let temp = bucket[lastIndex];
+      bucket[lastIndex] = bucket[index];
       bucket[index] = temp;
-    }    
+    }
     bucket.pop();
     body.cx = -1;
     body.cy = -1;
