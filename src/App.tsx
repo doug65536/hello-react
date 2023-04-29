@@ -12,12 +12,32 @@ import { SessionDashboard } from './Session';
 // = relativistic momentum =
 //             mv
 //  p = -----------------
-//      sqrt(1 - (v/c)^2)
+//      sqrt(1 - (v/c)²)
 // 
 // = length contraction ====
 //
-// L = L0 * sqrt(1 - (v^2/c^2))
+// L = L0 * sqrt(1 - (v²/c²))
 //
+// F = (1 + γ² v v^t) γ m a
+//
+//        1
+// γ =  ——————
+//      1 - v²
+//
+// a = (1 - v v^t) F
+//     —————————————
+//          γ m
+//
+// where v, a is a 3d vector in fraction of c, 1=speed of light
+//
+// 
+
+//
+// Fission theoretical max output: 1kg fuel = 8.8e+13 Joules of energy
+// Fusion theoretical max output: 1kg fuel = 3.38e+14 Joules of energy
+//
+// 
+
 
 interface AppDragData {
   body: RigidBody | null;
