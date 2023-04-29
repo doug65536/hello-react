@@ -227,7 +227,7 @@ class IndexDBBackend implements BackendConnection {
 
   parseURL(urlText: string): URLInfo {
     let url = new URL(urlText, 'http://0.0.0.0/');
-    let match = url.pathname.match(/\/api\/([^\/]+)(?:\/([^\/]+))?/);
+    let match = url.pathname.match(/\/api\/([^/]+)(?:\/([^/]+))?/);
     return {
       tableName: match ? match[1] : null,
       key: (match && match[2]) ? Number(match[2]) : null,
@@ -750,8 +750,8 @@ export class SessionDashboard
     if (!customer || !customer.id || !this.state.customers || !this.backend)
       return;
     
-    let index = this.state.customers.findIndex((customer) => {
-      return customer.id === customer.id;
+    let index = this.state.customers.findIndex((candidate) => {
+      return candidate.id === customer.id;
     });
     
     let promise: Promise<any>;
