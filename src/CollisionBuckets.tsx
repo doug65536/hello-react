@@ -69,9 +69,12 @@ export class CollisionBuckets {
     let bucket = this.bucketAt(row, col);
     let index = bucket.indexOf(body);
     console.assert(index >= 0, 'removing but not there');
-    let lastItem = bucket.pop();
-    if (bucket.length)
-      bucket[index] = lastItem!;
+    if (bucket.length > 1) {
+      // Make it so the one at the end is the one we are removing
+      let temp = bucket[bucket.length - 1];
+      bucket[bucket.length-1] = bucket[index];
+      bucket[index] = temp;
+    }    
     bucket.pop();
     body.cx = -1;
     body.cy = -1;
