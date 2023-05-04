@@ -149,7 +149,7 @@ export class RoundBody<P extends RoundBodyProps = RoundBodyProps>
     let rightPen = Math.max(0, this.px + this.radius - right);
     let bottomPen = Math.max(0, this.py + this.radius - bottom);
 
-    const restitution = 0.95;
+    const restitution = 0.98;
 
     // let oldx = this.px;
     // let oldy = this.py;
