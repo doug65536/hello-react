@@ -6,7 +6,7 @@ import { Obstacle, RigidBody, RoundBody } from './RigidBody';
 import { CollisionBuckets } from "./CollisionBuckets";
 import { ToolWindow } from './ToolWindow';
 import { DragDispatcher, DragDispatcherListener } from './DragDispatcher';
-import { GLCanvas } from './GLCanvas';
+import { GLCanvasDemo } from './GLCanvasDemo';
 import { SessionDashboard } from './Session';
 
 // = relativistic momentum =
@@ -52,16 +52,18 @@ class App extends React.Component<{}>
   private bodies: Array<RigidBody | null> = [];
   private lastTime: number = NaN;
   private frameGraph: FrameGraph | null = null;
-  private targetCount: number = 6;
+  private targetCount: number = 60;
+  private microstepMicrosecs = 333;
   private fpsDigitalDisplay: HTMLDivElement | null = null;
   private fpsDigitalDisplayInterval: NodeJS.Timer | null = null;
   private windowResizeHandlerBound: (() => void) | null = null;
   public graphWindow: ToolWindow<FrameGraph> | null = null;
-  public planetWindow: ToolWindow<GLCanvas> | null = null;
+  public planetWindow: ToolWindow<GLCanvasDemo> | null = null;
   private sessionWindow: ToolWindow<SessionDashboard> | null = null;
   private buckets: CollisionBuckets = new CollisionBuckets();
   private paused: boolean = false;
   private slow: boolean = false;
+  private ultra: boolean = false;
   private dragDispatcher = new DragDispatcher<AppDragData>(this, {
     shouldDrag: ['.body'],
     userData: {
@@ -69,6 +71,9 @@ class App extends React.Component<{}>
       dragType: ''
     }
   });
+  // Handles when we couldn't even do one microstep, 
+  // accumulates partial microsteps
+  private accumulatedRemainSec: number = 0;
 
   public constructor(props: {}) {
     super(props);
@@ -178,11 +183,13 @@ class App extends React.Component<{}>
     requestAnimationFrame(callback);
   }
 
-  private advanceTime(elap: number) {
+
+  private advanceTime(elapSec: number) {
     if (this.paused || !this.bodies)
       return;
 
-    const stepSize = 0.004;
+
+    const stepSize = this.microstepMicrosecs * 0.000001;
 
     const collisionTop = 0;
     const collisionLeft = 0;
@@ -193,7 +200,7 @@ class App extends React.Component<{}>
 
     //this.buckets.validate(this.bodies);
 
-    let remain = !this.slow ? elap : elap * 0.05; //0.125;
+    let remainSec = !this.slow ? elapSec : elapSec * 0.01; //0.125;
     let useMicrostep = true;
     if (!useMicrostep /*|| remain > 0.02*/) {
       // for (let i = 0, e = this.bodies.length; i < e; ++i) {    
@@ -218,9 +225,11 @@ class App extends React.Component<{}>
       //     collisionRight, collisionBottom, this.buckets);
       //   body.update();
     } else {
-      while (remain >= 0.0005) {
-        let thisStep = Math.min(remain, stepSize);
-        remain -= stepSize;
+      remainSec += this.accumulatedRemainSec;
+      this.accumulatedRemainSec = 0;
+      while (remainSec >= stepSize) {
+        let thisStep = Math.min(remainSec, stepSize);
+        remainSec -= stepSize;
 
         // Clear the acceleration
         // for (let i = 0, e = this.bodies.length; i < e; ++i) {
@@ -263,8 +272,8 @@ class App extends React.Component<{}>
               dy *= force;
               body.ax += dx;
               body.ay += dy;
-              body.vx *= 0.99;
-              body.vy *= 0.99;
+              // body.vx *= 0.99;
+              // body.vy *= 0.99;
             }
 
             body.step(thisStep, this.buckets);
@@ -279,6 +288,8 @@ class App extends React.Component<{}>
           }
         }
       }
+
+      this.accumulatedRemainSec = remainSec;
     }
     
 
@@ -355,6 +366,18 @@ class App extends React.Component<{}>
   }
 
   public render(): JSX.Element {
+    let boldIf = (c: boolean): React.CSSProperties => 
+      c ? {fontWeight: 'bold'} : {};
+    let qualityButton = (setting: number, label: string) =>
+      <button 
+      style={boldIf(this.microstepMicrosecs === setting)}
+      onClick={(_) => { 
+        this.microstepMicrosecs = setting;
+        this.forceUpdate();
+      }}>
+      {label}
+    </button>;
+    
     let enableCollisionGrid: boolean = true;
     return <>
       <div style={{position: 'absolute'}}>
@@ -379,6 +402,24 @@ class App extends React.Component<{}>
           />
         Slow
       </label>
+      <label style={{marginLeft:"12px"}}>
+        Microsec per microstep
+        <input
+          type="number"
+          key="slow-input"
+          min={1}
+          max={16666}
+          value={this.microstepMicrosecs}
+          title="1=Ludicrous quality, 16666=for very slow CPUs"
+          onChange={(event) => {
+            this.microstepMicrosecs = +event.target.value;
+            this.forceUpdate();
+          }}/>
+      </label>
+      {qualityButton(250, 'Ultra')}
+      {qualityButton(333, 'High')}
+      {qualityButton(500, 'Normal')}
+      {qualityButton(16666, 'Ultralight')}
       <span style={{marginLeft: '12px'}}>        
         Ball count: <input
           type="number"
@@ -396,15 +437,16 @@ class App extends React.Component<{}>
         style={{color: 'white'}}
         ref={(el) => this.fpsDigitalDisplay = el}/>
       </div>
-      <div>
+      <div
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0
+        }}>
+        Grab the balls with the mouse and throw them around!
         <button 
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 0
-            }}
-            onClick={(event) => ToolWindow.showAllWindows()}>
-          Show All
+        onClick={(event) => ToolWindow.showAllWindows()}>
+          Show All Popups
         </button>
       </div>
 
@@ -431,14 +473,14 @@ class App extends React.Component<{}>
         <FrameGraph />
       </ToolWindow>
 
-      <ToolWindow<GLCanvas>
+      <ToolWindow<GLCanvasDemo>
         title="Earth"
         defaultLeft={100}
         defaultTop={100}
         defaultWidth={720}
         defaultHeight={480}
         ref={(comp) => this.attachPlanetWindow(comp)}>
-        <GLCanvas />
+        <GLCanvasDemo />
       </ToolWindow>
 
       <ToolWindow<SessionDashboard>
@@ -498,7 +540,7 @@ class App extends React.Component<{}>
     this.sessionWindow = sessionWindow;
   }
 
-  attachPlanetWindow(planetWindow: ToolWindow<GLCanvas> | null): void {
+  attachPlanetWindow(planetWindow: ToolWindow<GLCanvasDemo> | null): void {
     this.planetWindow = planetWindow;
   }
 
