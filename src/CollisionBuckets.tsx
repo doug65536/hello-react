@@ -10,6 +10,22 @@ export class CollisionBuckets {
   // Rows, columns, and bucket lists are created on first demand
   private buckets: RigidBody[][][] = [];
 
+  // Performance data
+  nearbyMs: number = 0;
+  checkMs: number = 0;
+  responseMs: number = 0;
+  outsideSample: number = 0;
+  outsideMs: number = 0;
+  outsideCount: number = 0;
+
+  public get perf(): Map<string, number> {
+    let result = new Map<string, number>();
+    result.set('query', 100 * this.nearbyMs / this.outsideMs);
+    result.set('check', 100 * this.checkMs / this.outsideMs);
+    result.set('resolve', 100 * this.responseMs / this.outsideMs);
+    return result;
+  }
+
   newFrame(): void {
     this.ignoredCollisions.clear();
   }

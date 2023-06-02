@@ -206,12 +206,17 @@ export class RoundBody<P extends RoundBodyProps = RoundBodyProps>
     // if (this.px !== oldx || this.py !== oldy)
     //   buckets.moveBody(this, this.px, this.py);
 
+    let performanceSt = performance.now();
     let nearbyBuckets = buckets.bodiesNear(this.px, this.py, this.radius);
+    let performanceEn = performance.now();
+    buckets.nearbyMs += performanceEn - performanceSt;
 
     // console.log(nearby.length, 'nearby buckets');
 
     let others = [];
-    
+
+    performanceSt = performance.now();
+
     //let foundCollisions: [number,number,number][] = [];
     for (let b = 0; b < nearbyBuckets.length; ++b) {
       let bucket = nearbyBuckets[b];
@@ -242,10 +247,15 @@ export class RoundBody<P extends RoundBodyProps = RoundBodyProps>
       }
     }
 
+    performanceEn = performance.now();
+    buckets.checkMs += performanceEn - performanceSt;
+
     // let touchL = this.px - this.radius < 0;
     // let touchR = this.px + this.radius >= window.innerWidth;
     // let touchT = this.py - this.radius < 0;
     // let touchB = this.py + this.radius >= window.innerHeight;
+
+    performanceSt = performance.now();
 
     if (others.length) {      
       for (let i = 0; i < others.length; ++i) {
@@ -429,6 +439,19 @@ export class RoundBody<P extends RoundBodyProps = RoundBodyProps>
           buckets.insertIgnore(otherBody, this);
         }
       }
+    }
+
+    performanceEn = performance.now();
+    buckets.responseMs += performanceEn - performanceSt;
+
+    let newSample = performance.now();
+
+    if (buckets.outsideSample) {
+      let elap = newSample - buckets.outsideSample;
+      buckets.outsideMs += elap;
+      ++buckets.outsideCount;
+    } else {
+      buckets.outsideSample = newSample;
     }
   }
 

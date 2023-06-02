@@ -74,6 +74,8 @@ class App extends React.Component<{}>
   // Handles when we couldn't even do one microstep, 
   // accumulates partial microsteps
   private accumulatedRemainSec: number = 0;
+  private performanceHackInterval: (NodeJS.Timer | null) = null;
+  private gravity: number = 980;
 
   public constructor(props: {}) {
     super(props);
