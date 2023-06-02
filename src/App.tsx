@@ -145,6 +145,10 @@ class App extends React.Component<{}>
     this.windowResizeHandlerBound = this.windowResizeHandler.bind(this);
 
     window.addEventListener('resize', this.windowResizeHandlerBound);
+
+    this.performanceHackInterval = setInterval(() => {
+      console.log(this.buckets.perf);
+    }, 1000);
   }
 
   private windowResizeHandler(): void {
@@ -155,6 +159,11 @@ class App extends React.Component<{}>
   }
 
   componentWillUnmount(): void {
+    if (this.performanceHackInterval) {
+      clearInterval(this.performanceHackInterval);
+      this.performanceHackInterval = null;
+    }
+
     this.dragDispatcher.unhook();
     if (this.windowResizeHandlerBound)
       window.removeEventListener('resize', this.windowResizeHandlerBound);
@@ -248,7 +257,7 @@ class App extends React.Component<{}>
           let body = this.bodies[i];
           if (body) {
             body.ax = 0;
-            body.ay = 980;
+            body.ay = this.gravity;
             if (body.hx !== 0 || body.hy !== 0 || body.wtf) {
               body.hy -= 1;
               let hm = body.wtf / Math.sqrt(
@@ -385,7 +394,18 @@ class App extends React.Component<{}>
       <div style={{position: 'absolute'}}>
         {this.collisionGrid(enableCollisionGrid)}
       </div>
-      <div style={{position: 'absolute'}}>
+
+      <div style={{
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            overflow: 'hidden'
+          }}>        
+        {this.bodyElements}
+      </div>
+
+      <div style={{position: 'absolute', left: 0, top: 0}}>
       <label>
         <input
           type="checkbox"
@@ -394,6 +414,24 @@ class App extends React.Component<{}>
           onChange={() => this.paused = !this.paused}
           />
         Pause
+      </label> |
+      <label>
+        <input
+            type="number"
+            key="gravity"
+            min={-980*2}
+            max={980*2}
+            step={98}
+            defaultValue={980}
+            title="Gravity"
+            onChange={(event) => {
+              this.bodies.forEach((body) => {
+                this.gravity = +event.target.value;
+                if (body) 
+                  body.ay = this.gravity;
+              });
+              this.forceUpdate();
+            }}/> Gravity / 100
       </label> |
       <label>
         <input
@@ -408,7 +446,7 @@ class App extends React.Component<{}>
         Microsec per microstep
         <input
           type="number"
-          key="slow-input"
+          key="quality-input"
           min={1}
           max={16666}
           value={this.microstepMicrosecs}
@@ -452,16 +490,6 @@ class App extends React.Component<{}>
         </button>
       </div>
 
-      <div style={{
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            overflow: 'hidden'
-          }}>        
-        {this.bodyElements}
-      </div>
-      
       <ToolWindow<FrameGraph>
           title="Frame Time Graph"
           defaultLeft={1257}
