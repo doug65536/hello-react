@@ -433,7 +433,7 @@ export class RoundBody<P extends RoundBodyProps = RoundBodyProps>
   }
 
   public get speedSq(): number {
-    return this.vx * this.vx + this.vy + this.vy;
+    return this.vx * this.vx + this.vy * this.vy;
   }
 
   public get speed(): number {
